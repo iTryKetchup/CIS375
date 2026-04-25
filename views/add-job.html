@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>Add New Job Application</h1>
+    <form action="/save-job" method="POST">
+        <label>Company:</label><br>
+        <input type="text" name="companyName" required><br>
+
+        <label>Job Title:</label><br>
+        <input type="text" name="jobTitle" required><br>
+
+        <label>Source (LinkedIn, Indeed, etc):</label><br>
+        <input type="text" name="applicationSource"><br>
+
+        <label>Date Applied:</label><br>
+        <input type="date" name="applicationDate" required><br>
+
+        <label>Status:</label><br>
+        <select name="status">
+            <option value="Applied">Applied</option>
+            <option value="Interview">Interview</option>
+            <option value="Offer">Offer</option>
+            <option value="Rejected">Rejected</option>
+        </select><br>
+
+        <button type="submit">Save Job Entry</button>
+    </form>
+</body>
+</html>
