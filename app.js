@@ -55,12 +55,12 @@ app.post('/save-job', (req, res) => {
             res.status(500).send("Error saving to database");
         } else {
             console.log("New job entry saved!");
-            res.redirect('/jobs'); // Redirect to the dashboard to see the new entry
+            res.redirect('/jobs'); 
         }
     });
 });
 
-// 4. GET Route: View all jobs in a professional Dashboard Table
+// 4. GET Route: View all jobs in a Dashboard Table
 app.get('/jobs', (req, res) => {
     const sql = "SELECT * FROM jobs";
 
@@ -82,7 +82,7 @@ app.get('/jobs', (req, res) => {
         <a href="/add-job">Add New Job</a>
     </nav>
     <hr>
-    <h1>Job Applications Dashboard</h1>
+    <h1>Career Tracker</h1>
     <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">
         <thead>
             <tr style="background-color: #f2f2f2;">
@@ -92,6 +92,7 @@ app.get('/jobs', (req, res) => {
                 <th>Date Applied</th>
                 <th>Status</th>
                 <th>Follow-up Date</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>`;
@@ -105,6 +106,13 @@ app.get('/jobs', (req, res) => {
                 <td>${job.date_applied}</td>
                 <td>${job.status}</td>
                 <td>${job.follow_up_date || 'None Set'}</td>
+                <td>
+                    <a href="/delete-job/${job.id}" 
+                       onclick="return confirm('Are you sure you want to delete this application?')" 
+                       style="color: red; text-decoration: none; font-weight: bold;">
+                       [X] Delete
+                    </a>
+                </td>
             </tr>`;
         });
 
@@ -118,6 +126,22 @@ app.get('/jobs', (req, res) => {
 </html>`;
 
         res.send(html);
+    });
+});
+
+// 5. NEW DELETE ROUTE (Week 5)
+app.get('/delete-job/:id', (req, res) => {
+    const jobId = req.params.id;
+    const sql = "DELETE FROM jobs WHERE id = ?";
+
+    db.run(sql, jobId, (err) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send("Error deleting job");
+        } else {
+            console.log(`Job ID ${jobId} deleted successfully.`);
+            res.redirect('/jobs'); 
+        }
     });
 });
 
