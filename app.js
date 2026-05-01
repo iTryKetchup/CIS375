@@ -160,8 +160,7 @@ app.get('/delete-job/:id', (req, res) => {
         }
     });
 });
-
-// 6. NEW UPDATE STATUS ROUTE (Week 5)
+// This tells the server how to update the SQLite database
 app.post('/update-status/:id', (req, res) => {
     const jobId = req.params.id;
     const newStatus = req.body.status;
@@ -172,12 +171,11 @@ app.post('/update-status/:id', (req, res) => {
             console.error(err.message);
             res.status(500).send("Error updating status");
         } else {
-            console.log(`Job ${jobId} updated to ${newStatus}`);
+            // After updating, send the user back to the dashboard to see the change
             res.redirect('/jobs'); 
         }
     });
 });
-
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
