@@ -1,6 +1,7 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
+
 const app = express();
 const PORT = 3000;
 
@@ -14,7 +15,6 @@ const db = new sqlite3.Database('./db/jobs.db', (err) => {
     } else {
         console.log('Connected to SQLite database.');
 
-        // 1. DATABASE TABLE SETUP
         db.run(`CREATE TABLE IF NOT EXISTS jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             company TEXT NOT NULL,
@@ -35,24 +35,41 @@ const db = new sqlite3.Database('./db/jobs.db', (err) => {
 
 // --- ROUTES ---
 
-// Homepage Redirect (Optional but helpful)
+// Homepage redirect
 app.get('/', (req, res) => {
     res.redirect('/jobs');
 });
 
-// 2. GET Route: Show the Manual Entry Form
+// Show manual entry form
 app.get('/add-job', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'add-job.html'));
 });
 
-// 3. POST Route: Save form data to SQLite
+// Save new job
 app.post('/save-job', (req, res) => {
-    const { companyName, jobTitle, applicationSource, applicationDate, status, followUpDate } = req.body;
-    
-    const sql = `INSERT INTO jobs (company, position, source, date_applied, status, follow_up_date) 
-                 VALUES (?, ?, ?, ?, ?, ?)`;
-    
-    const params = [companyName, jobTitle, applicationSource, applicationDate, status, followUpDate];
+    const {
+        companyName,
+        jobTitle,
+        applicationSource,
+        applicationDate,
+        status,
+        followUpDate
+    } = req.body;
+
+    const sql = `
+        INSERT INTO jobs 
+        (company, position, source, date_applied, status, follow_up_date)
+        VALUES (?, ?, ?, ?, ?, ?)
+    `;
+
+    const params = [
+        companyName,
+        jobTitle,
+        applicationSource,
+        applicationDate,
+        status,
+        followUpDate
+    ];
 
     db.run(sql, params, (err) => {
         if (err) {
@@ -60,12 +77,12 @@ app.post('/save-job', (req, res) => {
             res.status(500).send("Error saving to database");
         } else {
             console.log("New job entry saved!");
-            res.redirect('/jobs'); 
+            res.redirect('/jobs');
         }
     });
 });
 
-// 4. GET Route: View all jobs in a Dashboard Table
+// View all jobs
 app.get('/jobs', (req, res) => {
     const sql = "SELECT * FROM jobs";
 
@@ -86,8 +103,11 @@ app.get('/jobs', (req, res) => {
         <a href="/jobs">View All Jobs</a> | 
         <a href="/add-job">Add New Job</a>
     </nav>
+
     <hr>
+
     <h1>Career Tracker</h1>
+
     <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">
         <thead>
             <tr style="background-color: #f2f2f2;">
@@ -100,16 +120,17 @@ app.get('/jobs', (req, res) => {
                 <th>Actions</th>
             </tr>
         </thead>
-        <tbody>`;
+        <tbody>
+        `;
 
         rows.forEach(job => {
-            // We replace ${job.status} with this mini-form and select box
             html += `
             <tr>
                 <td>${job.company}</td>
                 <td>${job.position}</td>
                 <td>${job.source || 'N/A'}</td>
-                <td>${job.date_applied}</td>
+                <td>${job.date_applied || 'N/A'}</td>
+
                 <td>
                     <form action="/update-status/${job.id}" method="POST" style="margin:0;">
                         <select name="status" onchange="this.form.submit()">
@@ -121,33 +142,87 @@ app.get('/jobs', (req, res) => {
                         </select>
                     </form>
                 </td>
-                <td>${job.follow_up_date || 'None Set'}</td>
+
+                <td>
+                    <form action="/update-followup/${job.id}" method="POST" style="margin:0; display:flex; gap:5px;">
+                        <input 
+                            type="date" 
+                            name="followUpDate" 
+                            value="${job.follow_up_date || ''}"
+                        >
+                        <button type="submit" style="font-size:10px; cursor:pointer;">
+                            Update
+                        </button>
+                    </form>
+                </td>
+
                 <td>
                     <a href="/delete-job/${job.id}" 
                        onclick="return confirm('Are you sure you want to delete this application?')" 
-                       style="color: red; text-decoration: none; font-weight: bold;">
+                       style="color:red; text-decoration:none; font-weight:bold;">
                        [X] Delete
                     </a>
                 </td>
-            </tr>`;
+            </tr>
+            `;
         });
 
         html += `
         </tbody>
     </table>
+
     <br>
     <hr>
+
     <p><strong>Total Applications:</strong> ${rows.length}</p>
 </body>
-</html>`;
+</html>
+        `;
 
         res.send(html);
     });
 });
 
-// 5. NEW DELETE ROUTE (Week 5)
+// Week 5: Update status
+app.post('/update-status/:id', (req, res) => {
+    const jobId = req.params.id;
+    const newStatus = req.body.status;
+
+    const sql = "UPDATE jobs SET status = ? WHERE id = ?";
+
+    db.run(sql, [newStatus, jobId], (err) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send("Error updating status");
+        } else {
+            console.log(`Job ${jobId} updated to ${newStatus}`);
+            res.redirect('/jobs');
+        }
+    });
+});
+
+// Week 6: Update follow-up date
+app.post('/update-followup/:id', (req, res) => {
+    const jobId = req.params.id;
+    const newDate = req.body.followUpDate;
+
+    const sql = "UPDATE jobs SET follow_up_date = ? WHERE id = ?";
+
+    db.run(sql, [newDate, jobId], (err) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send("Error updating follow-up date");
+        } else {
+            console.log(`Follow-up for Job ${jobId} updated to ${newDate}`);
+            res.redirect('/jobs');
+        }
+    });
+});
+
+// Week 5: Delete job
 app.get('/delete-job/:id', (req, res) => {
     const jobId = req.params.id;
+
     const sql = "DELETE FROM jobs WHERE id = ?";
 
     db.run(sql, jobId, (err) => {
@@ -156,26 +231,11 @@ app.get('/delete-job/:id', (req, res) => {
             res.status(500).send("Error deleting job");
         } else {
             console.log(`Job ID ${jobId} deleted successfully.`);
-            res.redirect('/jobs'); 
+            res.redirect('/jobs');
         }
     });
 });
-// This tells the server how to update the SQLite database
-app.post('/update-status/:id', (req, res) => {
-    const jobId = req.params.id;
-    const newStatus = req.body.status;
-    const sql = "UPDATE jobs SET status = ? WHERE id = ?";
 
-    db.run(sql, [newStatus, jobId], (err) => {
-        if (err) {
-            console.error(err.message);
-            res.status(500).send("Error updating status");
-        } else {
-            // After updating, send the user back to the dashboard to see the change
-            res.redirect('/jobs'); 
-        }
-    });
-});
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
