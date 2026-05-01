@@ -35,6 +35,11 @@ const db = new sqlite3.Database('./db/jobs.db', (err) => {
 
 // --- ROUTES ---
 
+// Homepage Redirect (Optional but helpful)
+app.get('/', (req, res) => {
+    res.redirect('/jobs');
+});
+
 // 2. GET Route: Show the Manual Entry Form
 app.get('/add-job', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'add-job.html'));
@@ -98,13 +103,24 @@ app.get('/jobs', (req, res) => {
         <tbody>`;
 
         rows.forEach(job => {
+            // We replace ${job.status} with this mini-form and select box
             html += `
             <tr>
                 <td>${job.company}</td>
                 <td>${job.position}</td>
                 <td>${job.source || 'N/A'}</td>
                 <td>${job.date_applied}</td>
-                <td>${job.status}</td>
+                <td>
+                    <form action="/update-status/${job.id}" method="POST" style="margin:0;">
+                        <select name="status" onchange="this.form.submit()">
+                            <option value="Applied" ${job.status === 'Applied' ? 'selected' : ''}>Applied</option>
+                            <option value="Interview" ${job.status === 'Interview' ? 'selected' : ''}>Interview</option>
+                            <option value="Follow-Up" ${job.status === 'Follow-Up' ? 'selected' : ''}>Follow-Up</option>
+                            <option value="Offer" ${job.status === 'Offer' ? 'selected' : ''}>Offer</option>
+                            <option value="Rejected" ${job.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
+                        </select>
+                    </form>
+                </td>
                 <td>${job.follow_up_date || 'None Set'}</td>
                 <td>
                     <a href="/delete-job/${job.id}" 
@@ -140,6 +156,23 @@ app.get('/delete-job/:id', (req, res) => {
             res.status(500).send("Error deleting job");
         } else {
             console.log(`Job ID ${jobId} deleted successfully.`);
+            res.redirect('/jobs'); 
+        }
+    });
+});
+
+// 6. NEW UPDATE STATUS ROUTE (Week 5)
+app.post('/update-status/:id', (req, res) => {
+    const jobId = req.params.id;
+    const newStatus = req.body.status;
+    const sql = "UPDATE jobs SET status = ? WHERE id = ?";
+
+    db.run(sql, [newStatus, jobId], (err) => {
+        if (err) {
+            console.error(err.message);
+            res.status(500).send("Error updating status");
+        } else {
+            console.log(`Job ${jobId} updated to ${newStatus}`);
             res.redirect('/jobs'); 
         }
     });
