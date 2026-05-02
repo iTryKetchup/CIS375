@@ -111,6 +111,39 @@ app.get('/jobs', (req, res) => {
             console.error(err.message);
             return res.status(500).send('Error reading database');
         }
+        // Week 8 Dashboard: Applications by Status
+const statusCounts = {
+    Applied: 0,
+    Interview: 0,
+    'Follow-Up': 0,
+    Offer: 0,
+    Rejected: 0
+};
+
+rows.forEach(job => {
+    if (statusCounts[job.status] !== undefined) {
+        statusCounts[job.status]++;
+    }
+});
+
+// Week 8 Dashboard: Upcoming Follow-Ups
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+
+const upcomingFollowUps = rows
+    .filter(job => job.follow_up_date)
+    .map(job => {
+        const followUpDate = new Date(job.follow_up_date + 'T00:00:00');
+        const timeDifference = followUpDate - today;
+        const daysUntil = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+
+        return {
+            ...job,
+            daysUntil
+        };
+    })
+    .filter(job => job.daysUntil >= 0 && job.daysUntil <= 14)
+    .sort((a, b) => a.daysUntil - b.daysUntil);
 
         let html = `
 <!DOCTYPE html>
@@ -130,7 +163,43 @@ app.get('/jobs', (req, res) => {
 
     <h1>Career Tracker</h1>
 
-    <h2>Search and Filter Applications</h2>
+<h2>Dashboard Overview</h2>
+
+<div style="border:1px solid #999; padding:15px; margin-bottom:20px; background-color:#f9f9f9;">
+    <p><strong>Total Applications:</strong> ${rows.length}</p>
+
+    <h3>Applications by Status</h3>
+    <ul>
+        <li>Applied: ${statusCounts.Applied}</li>
+        <li>Interview: ${statusCounts.Interview}</li>
+        <li>Follow-Up: ${statusCounts['Follow-Up']}</li>
+        <li>Offer: ${statusCounts.Offer}</li>
+        <li>Rejected: ${statusCounts.Rejected}</li>
+    </ul>
+
+    <h3>Upcoming Follow-Ups</h3>
+    ${
+        upcomingFollowUps.length === 0
+        ? `<p>No upcoming follow-ups in the next 14 days.</p>`
+        : `
+            <ul>
+                ${upcomingFollowUps.map(job => `
+                    <li>
+                        <strong>${job.company}</strong> — ${job.position} 
+                        on ${job.follow_up_date}
+                        ${
+                            job.daysUntil === 0 
+                            ? '<strong>(Today)</strong>' 
+                            : `(${job.daysUntil} day(s) away)`
+                        }
+                    </li>
+                `).join('')}
+            </ul>
+        `
+    }
+</div>
+
+<h2>Search and Filter Applications</h2>
 
     <form action="/jobs" method="GET" style="margin-bottom: 20px;">
         <input 
