@@ -1,29 +1,127 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add New Job - Career Tracker</title>
+</head>
 <body>
+
+    <nav>
+        <a href="/jobs">View All Jobs</a> |
+        <a href="/add-job">Add New Job</a> |
+        <a href="/help">Help</a>
+    </nav>
+
+    <hr>
+
     <h1>Add New Job Application</h1>
+
     <form action="/save-job" method="POST">
-        <label>Company:</label><br>
-        <input type="text" name="companyName" required><br>
 
-        <label>Job Title:</label><br>
-        <input type="text" name="jobTitle" required><br>
+        <p>
+            <label for="companyName">Company Name:</label><br>
+            <input 
+                type="text" 
+                id="companyName" 
+                name="companyName" 
+                required
+            >
+        </p>
 
-        <label>Source (LinkedIn, Indeed, etc):</label><br>
-        <input type="text" name="applicationSource"><br>
+        <p>
+            <label for="jobTitle">Job Title:</label><br>
+            <input 
+                type="text" 
+                id="jobTitle" 
+                name="jobTitle" 
+                required
+            >
+        </p>
 
-        <label>Date Applied:</label><br>
-        <input type="date" name="applicationDate" required><br>
+        <p>
+            <label for="applicationSource">Application Source:</label><br>
+            <input 
+                type="text" 
+                id="applicationSource" 
+                name="applicationSource" 
+                placeholder="LinkedIn, Indeed, Company Website, etc."
+            >
+        </p>
 
-        <label>Status:</label><br>
-        <select name="status">
-            <option value="Applied">Applied</option>
-            <option value="Interview">Interview</option>
-            <option value="Offer">Offer</option>
-            <option value="Rejected">Rejected</option>
-        </select><br>
+        <p>
+            <label for="applicationDate">Date Applied:</label><br>
+            <input 
+                type="date" 
+                id="applicationDate" 
+                name="applicationDate" 
+                required
+            >
+        </p>
 
-        <button type="submit">Save Job Entry</button>
+        <p>
+            <label for="status">Status:</label><br>
+            <select id="status" name="status">
+                <option value="Applied">Applied</option>
+                <option value="Interview">Interview</option>
+                <option value="Follow-Up">Follow-Up</option>
+                <option value="Offer">Offer</option>
+                <option value="Rejected">Rejected</option>
+            </select>
+        </p>
+
+        <p>
+            <label for="followUpDate">Follow-Up Date:</label><br>
+            <input 
+                type="date" 
+                id="followUpDate" 
+                name="followUpDate"
+            >
+            <br>
+            <small>
+                A suggested follow-up date is automatically added, but you can manually change it.
+            </small>
+        </p>
+
+        <button type="submit">Save Job Application</button>
+
     </form>
+
+   <script>
+    const applicationDateInput = document.getElementById('applicationDate');
+    const followUpInput = document.getElementById('followUpDate');
+
+    function addSevenDaysSkippingWeekend(dateString) {
+        const followUp = new Date(dateString + 'T00:00:00');
+
+        followUp.setDate(followUp.getDate() + 7);
+
+        if (followUp.getDay() === 6) {
+            followUp.setDate(followUp.getDate() + 2);
+        }
+
+        if (followUp.getDay() === 0) {
+            followUp.setDate(followUp.getDate() + 1);
+        }
+
+        return followUp.toISOString().split('T')[0];
+    }
+
+    // Set Date Applied to today when page first opens
+    if (applicationDateInput && !applicationDateInput.value) {
+        const today = new Date();
+        applicationDateInput.value = today.toISOString().split('T')[0];
+    }
+
+    // Set initial follow-up date based on Date Applied
+    if (applicationDateInput && followUpInput && !followUpInput.value) {
+        followUpInput.value = addSevenDaysSkippingWeekend(applicationDateInput.value);
+    }
+
+    // Recalculate follow-up date whenever Date Applied changes
+    applicationDateInput.addEventListener('change', function () {
+        followUpInput.value = addSevenDaysSkippingWeekend(applicationDateInput.value);
+    });
+</script>
+
 </body>
 </html>

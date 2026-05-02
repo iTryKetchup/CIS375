@@ -5,10 +5,10 @@ const path = require('path');
 const app = express();
 const PORT = 3000;
 
-// Middleware to help Express read form data
+// Middleware
 app.use(express.urlencoded({ extended: true }));
 
-// Connect to the database
+// Connect to database
 const db = new sqlite3.Database('./db/jobs.db', (err) => {
     if (err) {
         console.error('Database connection error:', err.message);
@@ -25,22 +25,25 @@ const db = new sqlite3.Database('./db/jobs.db', (err) => {
             follow_up_date DATE
         )`, (err) => {
             if (err) {
-                console.error("Error creating table:", err.message);
+                console.error('Error creating table:', err.message);
             } else {
-                console.log("Jobs table is ready and persistent.");
+                console.log('Jobs table is ready and persistent.');
             }
         });
     }
 });
-
-// --- ROUTES ---
 
 // Homepage redirect
 app.get('/', (req, res) => {
     res.redirect('/jobs');
 });
 
-// Show manual entry form
+// Help page
+app.get('/help', (req, res) => {
+    res.sendFile(path.join(__dirname, 'views', 'help.html'));
+});
+
+// Add job page
 app.get('/add-job', (req, res) => {
     res.sendFile(path.join(__dirname, 'views', 'add-job.html'));
 });
@@ -74,21 +77,39 @@ app.post('/save-job', (req, res) => {
     db.run(sql, params, (err) => {
         if (err) {
             console.error(err.message);
-            res.status(500).send("Error saving to database");
+            res.status(500).send('Error saving to database');
         } else {
-            console.log("New job entry saved!");
+            console.log('New job entry saved!');
             res.redirect('/jobs');
         }
     });
 });
 
-// View all jobs
+// View jobs with search/filter
 app.get('/jobs', (req, res) => {
-    const sql = "SELECT * FROM jobs";
+    const search = req.query.search || '';
+    const statusFilter = req.query.status || '';
 
-    db.all(sql, [], (err, rows) => {
+    let sql = 'SELECT * FROM jobs WHERE 1=1';
+    const params = [];
+
+    if (search.trim() !== '') {
+        sql += ' AND (LOWER(company) LIKE ? OR LOWER(position) LIKE ?)';
+        params.push(`%${search.toLowerCase()}%`);
+        params.push(`%${search.toLowerCase()}%`);
+    }
+
+    if (statusFilter.trim() !== '') {
+        sql += ' AND status = ?';
+        params.push(statusFilter);
+    }
+
+    sql += ' ORDER BY date_applied DESC';
+
+    db.all(sql, params, (err, rows) => {
         if (err) {
-            return res.status(500).send("Error reading database");
+            console.error(err.message);
+            return res.status(500).send('Error reading database');
         }
 
         let html = `
@@ -101,13 +122,49 @@ app.get('/jobs', (req, res) => {
 <body>
     <nav>
         <a href="/jobs">View All Jobs</a> | 
-        <a href="/add-job">Add New Job</a>
+        <a href="/add-job">Add New Job</a> |
+        <a href="/help">Help</a>
     </nav>
 
     <hr>
 
     <h1>Career Tracker</h1>
 
+    <h2>Search and Filter Applications</h2>
+
+    <form action="/jobs" method="GET" style="margin-bottom: 20px;">
+        <input 
+            type="text" 
+            name="search" 
+            placeholder="Search by company or job title"
+            value="${search}"
+            style="padding: 6px; width: 250px;"
+        >
+
+        <select name="status" style="padding: 6px;">
+            <option value="">All Statuses</option>
+            <option value="Applied" ${statusFilter === 'Applied' ? 'selected' : ''}>Applied</option>
+            <option value="Interview" ${statusFilter === 'Interview' ? 'selected' : ''}>Interview</option>
+            <option value="Follow-Up" ${statusFilter === 'Follow-Up' ? 'selected' : ''}>Follow-Up</option>
+            <option value="Offer" ${statusFilter === 'Offer' ? 'selected' : ''}>Offer</option>
+            <option value="Rejected" ${statusFilter === 'Rejected' ? 'selected' : ''}>Rejected</option>
+        </select>
+
+        <button type="submit" style="padding: 6px;">Search / Filter</button>
+        <a href="/jobs" style="margin-left: 10px;">Clear Filters</a>
+    </form>
+
+    <p><strong>Results Found:</strong> ${rows.length}</p>
+        `;
+
+        if (rows.length === 0) {
+            html += `
+                <p style="font-weight: bold; color: #b00020;">
+                    No matching applications found. Try clearing the filters or searching another company/job title.
+                </p>
+            `;
+        } else {
+            html += `
     <table border="1" cellpadding="8" style="border-collapse: collapse; width: 100%;">
         <thead>
             <tr style="background-color: #f2f2f2;">
@@ -121,11 +178,28 @@ app.get('/jobs', (req, res) => {
             </tr>
         </thead>
         <tbody>
-        `;
+            `;
 
-        rows.forEach(job => {
-            html += `
-            <tr>
+            rows.forEach(job => {
+                let rowStyle = '';
+                let statusIcon = '';
+
+                if (job.status === 'Follow-Up') {
+                    rowStyle = 'background-color: #fff3cd; font-weight: bold;';
+                    statusIcon = '⚠️ ';
+                } else if (job.status === 'Interview') {
+                    rowStyle = 'background-color: #d1ecf1;';
+                    statusIcon = '⭐ ';
+                } else if (job.status === 'Rejected') {
+                    rowStyle = 'background-color: #e2e3e5; color: #666;';
+                    statusIcon = '✖ ';
+                } else if (job.status === 'Offer') {
+                    rowStyle = 'background-color: #d4edda; font-weight: bold;';
+                    statusIcon = '✅ ';
+                }
+
+                html += `
+            <tr style="${rowStyle}">
                 <td>${job.company}</td>
                 <td>${job.position}</td>
                 <td>${job.source || 'N/A'}</td>
@@ -140,6 +214,7 @@ app.get('/jobs', (req, res) => {
                             <option value="Offer" ${job.status === 'Offer' ? 'selected' : ''}>Offer</option>
                             <option value="Rejected" ${job.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
                         </select>
+                        <span>${statusIcon}${job.status}</span>
                     </form>
                 </td>
 
@@ -164,17 +239,21 @@ app.get('/jobs', (req, res) => {
                     </a>
                 </td>
             </tr>
-            `;
-        });
+                `;
+            });
 
-        html += `
+            html += `
         </tbody>
     </table>
+            `;
+        }
 
+        html += `
     <br>
     <hr>
 
-    <p><strong>Total Applications:</strong> ${rows.length}</p>
+    <p><strong>Total Applications Displayed:</strong> ${rows.length}</p>
+
 </body>
 </html>
         `;
@@ -183,17 +262,17 @@ app.get('/jobs', (req, res) => {
     });
 });
 
-// Week 5: Update status
+// Update status
 app.post('/update-status/:id', (req, res) => {
     const jobId = req.params.id;
     const newStatus = req.body.status;
 
-    const sql = "UPDATE jobs SET status = ? WHERE id = ?";
+    const sql = 'UPDATE jobs SET status = ? WHERE id = ?';
 
     db.run(sql, [newStatus, jobId], (err) => {
         if (err) {
             console.error(err.message);
-            res.status(500).send("Error updating status");
+            res.status(500).send('Error updating status');
         } else {
             console.log(`Job ${jobId} updated to ${newStatus}`);
             res.redirect('/jobs');
@@ -201,17 +280,17 @@ app.post('/update-status/:id', (req, res) => {
     });
 });
 
-// Week 6: Update follow-up date
+// Update follow-up date
 app.post('/update-followup/:id', (req, res) => {
     const jobId = req.params.id;
     const newDate = req.body.followUpDate;
 
-    const sql = "UPDATE jobs SET follow_up_date = ? WHERE id = ?";
+    const sql = 'UPDATE jobs SET follow_up_date = ? WHERE id = ?';
 
     db.run(sql, [newDate, jobId], (err) => {
         if (err) {
             console.error(err.message);
-            res.status(500).send("Error updating follow-up date");
+            res.status(500).send('Error updating follow-up date');
         } else {
             console.log(`Follow-up for Job ${jobId} updated to ${newDate}`);
             res.redirect('/jobs');
@@ -219,16 +298,16 @@ app.post('/update-followup/:id', (req, res) => {
     });
 });
 
-// Week 5: Delete job
+// Delete job
 app.get('/delete-job/:id', (req, res) => {
     const jobId = req.params.id;
 
-    const sql = "DELETE FROM jobs WHERE id = ?";
+    const sql = 'DELETE FROM jobs WHERE id = ?';
 
     db.run(sql, jobId, (err) => {
         if (err) {
             console.error(err.message);
-            res.status(500).send("Error deleting job");
+            res.status(500).send('Error deleting job');
         } else {
             console.log(`Job ID ${jobId} deleted successfully.`);
             res.redirect('/jobs');
@@ -236,7 +315,7 @@ app.get('/delete-job/:id', (req, res) => {
     });
 });
 
-// Start the server
+// Start server
 app.listen(PORT, () => {
     console.log(`Server running at http://localhost:${PORT}`);
 });
