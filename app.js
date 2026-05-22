@@ -8,6 +8,28 @@ const PORT = 3000;
 // Middleware
 app.use(express.urlencoded({ extended: true }));
 
+function getFollowUpStatus(followUpDateValue) {
+    if (!followUpDateValue) {
+        return { label: 'N/A', isDue: false };
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const followUpDate = new Date(followUpDateValue + 'T00:00:00');
+    const daysUntil = Math.ceil((followUpDate - today) / (1000 * 60 * 60 * 24));
+
+    if (daysUntil < 0) {
+        return { label: 'Past due', isDue: true, daysUntil };
+    }
+
+    if (daysUntil === 0) {
+        return { label: 'Today', isDue: true, daysUntil };
+    }
+
+    return { label: 'Coming up', isDue: false, daysUntil };
+}
+
 // Connect to database
 const db = new sqlite3.Database('./db/jobs.db', (err) => {
     if (err) {
@@ -17,17 +39,82 @@ const db = new sqlite3.Database('./db/jobs.db', (err) => {
 
         db.run(`CREATE TABLE IF NOT EXISTS jobs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            company TEXT NOT NULL,
-            position TEXT NOT NULL,
-            source TEXT,
-            date_applied DATE,
+            company_name TEXT,
+            job_title TEXT,
+            application_source TEXT,
+            application_date TEXT,
             status TEXT DEFAULT 'Applied',
-            follow_up_date DATE
+            follow_up_date TEXT,
+            job_url TEXT,
+            resume_version TEXT,
+            cover_letter_version TEXT
         )`, (err) => {
             if (err) {
                 console.error('Error creating table:', err.message);
             } else {
                 console.log('Jobs table is ready and persistent.');
+
+                const requiredColumns = [
+                    ['company_name', 'TEXT'],
+                    ['job_title', 'TEXT'],
+                    ['application_source', 'TEXT'],
+                    ['application_date', 'TEXT'],
+                    ['job_url', 'TEXT'],
+                    ['resume_version', 'TEXT'],
+                    ['cover_letter_version', 'TEXT']
+                ];
+
+                db.all('PRAGMA table_info(jobs)', (err, columns) => {
+                    if (err) {
+                        return console.error('Error checking table columns:', err.message);
+                    }
+
+                    const existingColumns = columns.map(column => column.name);
+
+                    db.serialize(() => {
+                        requiredColumns.forEach(([columnName, columnType]) => {
+                            if (!existingColumns.includes(columnName)) {
+                                db.run(`ALTER TABLE jobs ADD COLUMN ${columnName} ${columnType}`, (err) => {
+                                    if (err && !err.message.includes('duplicate column name')) {
+                                        console.error(`Error adding ${columnName}:`, err.message);
+                                    }
+                                });
+                            }
+                        });
+
+                        if (existingColumns.includes('company')) {
+                            db.run('UPDATE jobs SET company_name = company WHERE company_name IS NULL', (err) => {
+                                if (err) {
+                                    console.error('Error updating company names:', err.message);
+                                }
+                            });
+                        }
+
+                        if (existingColumns.includes('position')) {
+                            db.run('UPDATE jobs SET job_title = position WHERE job_title IS NULL', (err) => {
+                                if (err) {
+                                    console.error('Error updating job titles:', err.message);
+                                }
+                            });
+                        }
+
+                        if (existingColumns.includes('source')) {
+                            db.run('UPDATE jobs SET application_source = source WHERE application_source IS NULL', (err) => {
+                                if (err) {
+                                    console.error('Error updating application sources:', err.message);
+                                }
+                            });
+                        }
+
+                        if (existingColumns.includes('date_applied')) {
+                            db.run('UPDATE jobs SET application_date = date_applied WHERE application_date IS NULL', (err) => {
+                                if (err) {
+                                    console.error('Error updating application dates:', err.message);
+                                }
+                            });
+                        }
+                    });
+                });
             }
         });
     }
@@ -56,32 +143,50 @@ app.post('/save-job', (req, res) => {
         applicationSource,
         applicationDate,
         status,
-        followUpDate
+        followUpDate,
+        jobUrl,
+        resumeVersion,
+        coverLetterVersion
     } = req.body;
 
-    const sql = `
-        INSERT INTO jobs 
-        (company, position, source, date_applied, status, follow_up_date)
-        VALUES (?, ?, ?, ?, ?, ?)
-    `;
-
-    const params = [
-        companyName,
-        jobTitle,
-        applicationSource,
-        applicationDate,
+    const jobData = {
+        company: companyName,
+        position: jobTitle,
+        source: applicationSource,
+        date_applied: applicationDate,
+        company_name: companyName,
+        job_title: jobTitle,
+        application_source: applicationSource,
+        application_date: applicationDate,
         status,
-        followUpDate
-    ];
+        follow_up_date: followUpDate,
+        job_url: jobUrl,
+        resume_version: resumeVersion,
+        cover_letter_version: coverLetterVersion
+    };
 
-    db.run(sql, params, (err) => {
+    db.all('PRAGMA table_info(jobs)', (err, columns) => {
         if (err) {
             console.error(err.message);
             res.status(500).send('Error saving to database');
-        } else {
-            console.log('New job entry saved!');
-            res.redirect('/jobs');
+            return;
         }
+
+        const existingColumns = columns.map(column => column.name);
+        const insertColumns = Object.keys(jobData).filter(columnName => existingColumns.includes(columnName));
+        const placeholders = insertColumns.map(() => '?').join(', ');
+        const sql = `INSERT INTO jobs (${insertColumns.join(', ')}) VALUES (${placeholders})`;
+        const params = insertColumns.map(columnName => jobData[columnName]);
+
+        db.run(sql, params, (err) => {
+            if (err) {
+                console.error(err.message);
+                res.status(500).send('Error saving to database');
+            } else {
+                console.log('New job entry saved!');
+                res.redirect('/jobs');
+            }
+        });
     });
 });
 
@@ -94,7 +199,7 @@ app.get('/jobs', (req, res) => {
     const params = [];
 
     if (search.trim() !== '') {
-        sql += ' AND (LOWER(company) LIKE ? OR LOWER(position) LIKE ?)';
+        sql += ' AND (LOWER(company_name) LIKE ? OR LOWER(job_title) LIKE ?)';
         params.push(`%${search.toLowerCase()}%`);
         params.push(`%${search.toLowerCase()}%`);
     }
@@ -104,7 +209,7 @@ app.get('/jobs', (req, res) => {
         params.push(statusFilter);
     }
 
-    sql += ' ORDER BY date_applied DESC';
+    sql += ' ORDER BY application_date DESC';
 
     db.all(sql, params, (err, rows) => {
         if (err) {
@@ -126,23 +231,19 @@ rows.forEach(job => {
     }
 });
 
-// Week 8 Dashboard: Upcoming Follow-Ups
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-
-const upcomingFollowUps = rows
+// Week 8 Dashboard: Follow-Ups
+const followUps = rows
     .filter(job => job.follow_up_date)
     .map(job => {
-        const followUpDate = new Date(job.follow_up_date + 'T00:00:00');
-        const timeDifference = followUpDate - today;
-        const daysUntil = Math.ceil(timeDifference / (1000 * 60 * 60 * 24));
+        const followUpStatus = getFollowUpStatus(job.follow_up_date);
 
         return {
             ...job,
-            daysUntil
+            daysUntil: followUpStatus.daysUntil,
+            followUpLabel: followUpStatus.label
         };
     })
-    .filter(job => job.daysUntil >= 0 && job.daysUntil <= 14)
+    .filter(job => job.daysUntil <= 14)
     .sort((a, b) => a.daysUntil - b.daysUntil);
 
         let html = `
@@ -151,6 +252,11 @@ const upcomingFollowUps = rows
 <head>
     <meta charset="UTF-8">
     <title>Career Tracker - Dashboard</title>
+    <style>
+        .past-due-label {
+            color: red;
+        }
+    </style>
 </head>
 <body>
     <nav>
@@ -177,18 +283,20 @@ const upcomingFollowUps = rows
         <li>Rejected: ${statusCounts.Rejected}</li>
     </ul>
 
-    <h3>Upcoming Follow-Ups</h3>
+    <h3>Follow-Ups</h3>
     ${
-        upcomingFollowUps.length === 0
-        ? `<p>No upcoming follow-ups in the next 14 days.</p>`
+        followUps.length === 0
+        ? `<p>No follow-ups due or coming up in the next 14 days.</p>`
         : `
             <ul>
-                ${upcomingFollowUps.map(job => `
+                ${followUps.map(job => `
                     <li>
-                        <strong>${job.company}</strong> — ${job.position} 
+                        <strong>${job.company_name}</strong> — ${job.job_title} 
                         on ${job.follow_up_date}
                         ${
-                            job.daysUntil === 0 
+                            job.daysUntil < 0
+                            ? `<span class="past-due-label">(Past due by ${Math.abs(job.daysUntil)} day(s))</span>`
+                            : job.daysUntil === 0 
                             ? '<strong>(Today)</strong>' 
                             : `(${job.daysUntil} day(s) away)`
                         }
@@ -240,6 +348,9 @@ const upcomingFollowUps = rows
                 <th>Company</th>
                 <th>Job Title</th>
                 <th>Source</th>
+                <th>Job Posting</th>
+                <th>Resume Version</th>
+                <th>Cover Letter Version</th>
                 <th>Date Applied</th>
                 <th>Status</th>
                 <th>Follow-up Date</th>
@@ -252,6 +363,7 @@ const upcomingFollowUps = rows
             rows.forEach(job => {
                 let rowStyle = '';
                 let statusIcon = '';
+                const followUpStatus = getFollowUpStatus(job.follow_up_date);
 
                 if (job.status === 'Follow-Up') {
                     rowStyle = 'background-color: #fff3cd; font-weight: bold;';
@@ -267,12 +379,20 @@ const upcomingFollowUps = rows
                     statusIcon = '✅ ';
                 }
 
+                if (followUpStatus.isDue) {
+                    rowStyle = 'background-color: #fff3cd; font-weight: bold;';
+                    statusIcon = '⚠️ ';
+                }
+
                 html += `
             <tr style="${rowStyle}">
-                <td>${job.company}</td>
-                <td>${job.position}</td>
-                <td>${job.source || 'N/A'}</td>
-                <td>${job.date_applied || 'N/A'}</td>
+                <td>${job.company_name}</td>
+                <td>${job.job_title}</td>
+                <td>${job.application_source || 'N/A'}</td>
+                <td>${job.job_url ? `<a href="${job.job_url}" target="_blank">View Posting</a>` : 'N/A'}</td>
+                <td>${job.resume_version || 'N/A'}</td>
+                <td>${job.cover_letter_version || 'N/A'}</td>
+                <td>${job.application_date || 'N/A'}</td>
 
                 <td>
                     <form action="/update-status/${job.id}" method="POST" style="margin:0;">
@@ -298,6 +418,7 @@ const upcomingFollowUps = rows
                             Update
                         </button>
                     </form>
+                    <small>${followUpStatus.label}</small>
                 </td>
 
                 <td>
