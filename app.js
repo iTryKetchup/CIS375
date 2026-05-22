@@ -47,7 +47,8 @@ const db = new sqlite3.Database('./db/jobs.db', (err) => {
             follow_up_date TEXT,
             job_url TEXT,
             resume_version TEXT,
-            cover_letter_version TEXT
+            cover_letter_version TEXT,
+            notes TEXT
         )`, (err) => {
             if (err) {
                 console.error('Error creating table:', err.message);
@@ -61,7 +62,8 @@ const db = new sqlite3.Database('./db/jobs.db', (err) => {
                     ['application_date', 'TEXT'],
                     ['job_url', 'TEXT'],
                     ['resume_version', 'TEXT'],
-                    ['cover_letter_version', 'TEXT']
+                    ['cover_letter_version', 'TEXT'],
+                    ['notes', 'TEXT']
                 ];
 
                 db.all('PRAGMA table_info(jobs)', (err, columns) => {
@@ -146,7 +148,8 @@ app.post('/save-job', (req, res) => {
         followUpDate,
         jobUrl,
         resumeVersion,
-        coverLetterVersion
+        coverLetterVersion,
+        notes
     } = req.body;
 
     const jobData = {
@@ -162,7 +165,8 @@ app.post('/save-job', (req, res) => {
         follow_up_date: followUpDate,
         job_url: jobUrl,
         resume_version: resumeVersion,
-        cover_letter_version: coverLetterVersion
+        cover_letter_version: coverLetterVersion,
+        notes
     };
 
     db.all('PRAGMA table_info(jobs)', (err, columns) => {
@@ -351,6 +355,7 @@ const followUps = rows
                 <th>Job Posting</th>
                 <th>Resume Version</th>
                 <th>Cover Letter Version</th>
+                <th>Notes</th>
                 <th>Date Applied</th>
                 <th>Status</th>
                 <th>Follow-up Date</th>
@@ -392,6 +397,7 @@ const followUps = rows
                 <td>${job.job_url ? `<a href="${job.job_url}" target="_blank">View Posting</a>` : 'N/A'}</td>
                 <td>${job.resume_version || 'N/A'}</td>
                 <td>${job.cover_letter_version || 'N/A'}</td>
+                <td>${job.notes ? 'Has Notes' : 'N/A'}</td>
                 <td>${job.application_date || 'N/A'}</td>
 
                 <td>
