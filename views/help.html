@@ -3,51 +3,140 @@
 <head>
     <meta charset="UTF-8">
     <title>Career Tracker Help</title>
+    <style>
+        body {
+            line-height: 1.5;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        .page-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .page-nav a {
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .header-divider {
+            border: 0;
+            border-top: 1px solid #999;
+            margin-bottom: 16px;
+        }
+
+        .help-overview {
+            border: 1px solid #999;
+            padding: 18px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .help-overview p {
+            margin: 0;
+        }
+
+        .help-tile {
+            border: 1px solid #999;
+            padding: 12px;
+            margin-bottom: 12px;
+            background-color: #fff;
+        }
+
+        .help-tile summary {
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.05em;
+        }
+    </style>
 </head>
 <body>
 
-    <nav>
-        <a href="/jobs">View All Jobs</a> |
-        <a href="/add-job">Add New Job</a> |
-        <a href="/help">Help</a> |
-        <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
-    </nav>
+    <header class="page-header">
+        <h1 class="page-title">Career Tracker Help Guide</h1>
+        <nav class="page-nav" aria-label="Main navigation">
+            <a href="/jobs">Dashboard</a>
+            <span>|</span>
+            <a href="/add-job">Add New Job</a>
+            <span>|</span>
+            <a href="/help">Help</a>
+            <span>|</span>
+            <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
+        </nav>
+    </header>
 
-    <hr>
+    <hr class="header-divider">
 
-    <h1>Career Tracker Help Guide</h1>
+    <section class="help-overview">
+        <p>
+            Career Tracker is designed to help users organize job applications in one place.
+            It supports manual application entry, status tracking, follow-up visibility,
+            job-specific notes, resume and cover letter version tracking, references, and
+            interview preparation resources. The dashboard is meant for quick scanning,
+            while the Job Details page holds deeper information for each application.
+        </p>
+    </section>
 
-    <h2>Launching the Application</h2>
-    <p>
-        Open your browser and go to:
-        http://localhost:3000/jobs
-    </p>
+    <details class="help-tile">
+        <summary>+ Add New Job</summary>
+        <ul>
+            <li>Use Add New Job to enter a new application manually.</li>
+            <li>Fill in company name, job title, source, date applied, status, and follow-up date.</li>
+            <li>Job posting URL, resume version, cover letter version, and application stage notes are optional but helpful.</li>
+            <li>A suggested follow-up date may be added automatically, but it can be changed manually.</li>
+            <li>After saving, the application appears on the dashboard.</li>
+        </ul>
+    </details>
 
-    <h2>Managing Applications</h2>
+    <details class="help-tile">
+        <summary>View All Jobs / Dashboard</summary>
+        <ul>
+            <li>The dashboard is designed for quick scanning and workflow triage.</li>
+            <li>Use the sticky status bar to filter by All, Applied, Interview, Follow-Up, Offer, or Rejected.</li>
+            <li>Use Search from the sticky bar to find applications by company name or job title.</li>
+            <li>Past Due and Upcoming provide quick follow-up visibility.</li>
+            <li>Cards are collapsible so the dashboard stays clean.</li>
+            <li>Use View Details to open the full application record.</li>
+        </ul>
+    </details>
 
-    <h3>Adding Applications</h3>
-    <p>
-        Click "Add New Job" and complete the form.
-    </p>
+    <details class="help-tile">
+        <summary>Job Details</summary>
+        <ul>
+            <li>Job Details is the command center for a specific application.</li>
+            <li>Use it to update job information, status, follow-up date, job posting URL, resume version, cover letter version, notes, and extended notes.</li>
+            <li>Application Stage Notes are for short notes from the application stage.</li>
+            <li>Extended Notes are for deeper research, interview prep, salary notes, STAR drafts, or detailed planning.</li>
+            <li>References Used lets the user add, edit, or delete references connected to that job.</li>
+            <li>Use Update Job Details to save changes.</li>
+        </ul>
+    </details>
 
-    <h3>Updating Status</h3>
-    <p>
-        Use the status dropdown menu to update workflow stages.
-    </p>
-
-    <h3>Search and Filters</h3>
-    <p>
-        Use the search bar and status filter to narrow results.
-    </p>
-
-    <h2>Visual Indicators</h2>
-
-    <ul>
-        <li>⚠️ Follow-Up Required</li>
-        <li>⭐ Interview Stage</li>
-        <li>✅ Offer Received</li>
-        <li>✖ Rejected</li>
-    </ul>
+    <details class="help-tile">
+        <summary>STAR Interview Help</summary>
+        <ul>
+            <li>STAR stands for Situation, Task, Action, and Result.</li>
+            <li>Use the STAR Interview Cheat Sheet to prepare behavioral interview answers.</li>
+            <li>The STAR page includes sections for in-person, phone, and virtual interviews.</li>
+            <li>It also includes story bank ideas and practice drills.</li>
+            <li>Job-specific STAR drafts can be stored in Extended Notes on the Job Details page.</li>
+        </ul>
+    </details>
 
 </body>
 </html>

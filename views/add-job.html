@@ -3,23 +3,113 @@
 <head>
     <meta charset="UTF-8">
     <title>Add New Job - Career Tracker</title>
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        .page-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .page-nav a {
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .header-divider {
+            border: 0;
+            border-top: 1px solid #999;
+            margin-bottom: 16px;
+        }
+
+        .form-container {
+            max-width: 1100px;
+        }
+
+        .job-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 16px 24px;
+            align-items: start;
+        }
+
+        .form-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-field {
+            margin: 0;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
+            padding: 6px;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            margin-top: 16px;
+        }
+
+        button[type="submit"] {
+            padding: 8px 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
-    <nav>
-        <a href="/jobs">View All Jobs</a> |
-        <a href="/add-job">Add New Job</a> |
-        <a href="/help">Help</a> |
-        <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
-    </nav>
+    <header class="page-header">
+        <h1 class="page-title">Add New Job Application</h1>
+        <nav class="page-nav" aria-label="Main navigation">
+            <a href="/jobs">Dashboard</a>
+            <span>|</span>
+            <a href="/add-job">Add New Job</a>
+            <span>|</span>
+            <a href="/help">Help</a>
+            <span>|</span>
+            <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
+        </nav>
+    </header>
 
-    <hr>
+    <hr class="header-divider">
 
-    <h1>Add New Job Application</h1>
-
+    <main class="form-container">
     <form action="/save-job" method="POST">
 
-        <p>
+        <div class="job-form-grid">
+            <div class="form-column">
+
+        <p class="form-field">
             <label for="companyName">Company Name:</label><br>
             <input 
                 type="text" 
@@ -29,7 +119,7 @@
             >
         </p>
 
-        <p>
+        <p class="form-field">
             <label for="jobTitle">Job Title:</label><br>
             <input 
                 type="text" 
@@ -39,7 +129,7 @@
             >
         </p>
 
-        <p>
+        <p class="form-field">
             <label for="applicationSource">Application Source:</label><br>
             <input 
                 type="text" 
@@ -49,48 +139,7 @@
             >
         </p>
 
-        <p>
-            <label for="jobUrl">Job Posting URL:</label><br>
-            <input 
-                type="url" 
-                id="jobUrl" 
-                name="jobUrl" 
-                placeholder="https://example.com/job-posting"
-            >
-        </p>
-
-        <p>
-            <label for="resumeVersion">Resume Version Used:</label><br>
-            <input 
-                type="text" 
-                id="resumeVersion" 
-                name="resumeVersion" 
-                placeholder="e.g., Tech_Resume_v2"
-            >
-        </p>
-
-        <p>
-            <label for="coverLetterVersion">Cover Letter Version Used:</label><br>
-            <input 
-                type="text" 
-                id="coverLetterVersion" 
-                name="coverLetterVersion" 
-                placeholder="e.g., Standard_Cover_Letter"
-            >
-        </p>
-
-        <p>
-            <label for="notes">Notes / Interview Notes:</label><br>
-            <textarea 
-                id="notes" 
-                name="notes" 
-                rows="6" 
-                cols="50" 
-                placeholder="Recruiter names, interview questions, salary notes, STAR responses, job details, etc."
-            ></textarea>
-        </p>
-
-        <p>
+        <p class="form-field">
             <label for="applicationDate">Date Applied:</label><br>
             <input 
                 type="date" 
@@ -100,7 +149,7 @@
             >
         </p>
 
-        <p>
+        <p class="form-field">
             <label for="status">Status:</label><br>
             <select id="status" name="status">
                 <option value="Applied">Applied</option>
@@ -111,7 +160,7 @@
             </select>
         </p>
 
-        <p>
+        <p class="form-field">
             <label for="followUpDate">Follow-Up Date:</label><br>
             <input 
                 type="date" 
@@ -124,9 +173,59 @@
             </small>
         </p>
 
+            </div>
+
+            <div class="form-column">
+
+        <p class="form-field">
+            <label for="jobUrl">Job Posting URL:</label><br>
+            <input 
+                type="url" 
+                id="jobUrl" 
+                name="jobUrl" 
+                placeholder="https://example.com/job-posting"
+            >
+        </p>
+
+        <p class="form-field">
+            <label for="resumeVersion">Resume Version Used:</label><br>
+            <input 
+                type="text" 
+                id="resumeVersion" 
+                name="resumeVersion" 
+                placeholder="e.g., Tech_Resume_v2"
+            >
+        </p>
+
+        <p class="form-field">
+            <label for="coverLetterVersion">Cover Letter Version Used:</label><br>
+            <input 
+                type="text" 
+                id="coverLetterVersion" 
+                name="coverLetterVersion" 
+                placeholder="e.g., Standard_Cover_Letter"
+            >
+        </p>
+
+        <p class="form-field">
+            <label for="notes">Notes / Interview Notes:</label><br>
+            <textarea 
+                id="notes" 
+                name="notes" 
+                rows="6" 
+                placeholder="Recruiter names, interview questions, salary notes, STAR responses, job details, etc."
+            ></textarea>
+        </p>
+
+            </div>
+        </div>
+
+        <div class="form-actions">
         <button type="submit">Save Job Application</button>
+        </div>
 
     </form>
+    </main>
 
    <script>
     const applicationDateInput = document.getElementById('applicationDate');

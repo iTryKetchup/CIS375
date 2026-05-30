@@ -345,44 +345,102 @@ app.get('/jobs', (req, res) => {
             border-top: 1px solid #999;
         }
 
+        .dashboard-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+
+        .dashboard-title {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        .dashboard-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .dashboard-nav a {
+            font-weight: bold;
+            text-decoration: none;
+        }
+
         .job-card-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 12px;
-            margin-top: 15px;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
             align-items: start;
         }
 
         .job-card {
             border: 1px solid #999;
-            padding: 12px;
+            padding: 9px;
             background-color: #fff;
             align-self: start;
         }
 
         .job-card summary {
             cursor: pointer;
-            list-style-position: inside;
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            list-style: none;
+        }
+
+        .job-card summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .job-card summary::marker {
+            content: "";
+        }
+
+        .job-card summary::before {
+            content: "▶";
+            flex: 0 0 auto;
+            line-height: 1.2;
+            margin-top: 1px;
+        }
+
+        .job-card[open] summary::before {
+            content: "▼";
         }
 
         .job-card-summary {
-            display: inline-flex;
+            display: flex;
             flex-direction: column;
-            gap: 4px;
-            vertical-align: top;
+            gap: 3px;
+            min-width: 0;
         }
 
         .job-card-body {
-            margin-top: 12px;
+            margin-top: 9px;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
+        }
+
+        .status-badge,
+        .past-due-badge {
+            display: inline-block;
+        }
+
+        .past-due-badge {
+            color: red;
+            font-weight: bold;
         }
 
         .job-card-actions {
             display: flex;
             flex-wrap: wrap;
-            gap: 10px;
+            gap: 8px;
             align-items: center;
         }
 
@@ -415,6 +473,7 @@ app.get('/jobs', (req, res) => {
         }
 
         .quick-filter-links,
+        .sticky-tools,
         .follow-up-hover-group {
             display: flex;
             flex-wrap: wrap;
@@ -422,8 +481,66 @@ app.get('/jobs', (req, res) => {
             align-items: center;
         }
 
-        .follow-up-hover-group {
+        .sticky-tools {
             margin-left: auto;
+        }
+
+        .results-count {
+            font-weight: bold;
+        }
+
+        .search-summary {
+            position: relative;
+        }
+
+        .search-toggle {
+            border: 1px solid #7aa7d9;
+            background: #eaf3ff;
+            color: #003b73;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-weight: bold;
+            list-style: none;
+            box-shadow: 0 1px 3px rgba(0, 59, 115, 0.15);
+        }
+
+        .search-toggle::-webkit-details-marker {
+            display: none;
+        }
+
+        .search-toggle::marker {
+            content: "";
+        }
+
+        .sticky-search-form {
+            position: absolute;
+            bottom: 100%;
+            right: 0;
+            margin-bottom: 6px;
+            width: 280px;
+            background: white;
+            border: 1px solid #999;
+            padding: 10px;
+            z-index: 300;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+            display: none;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .search-summary[open] .sticky-search-form {
+            display: flex;
+        }
+
+        .sticky-search-form input {
+            flex: 1 1 160px;
+            min-width: 0;
+            padding: 5px;
+        }
+
+        .sticky-search-form button {
+            padding: 5px 8px;
         }
 
         .follow-up-summary {
@@ -471,12 +588,18 @@ app.get('/jobs', (req, res) => {
     </style>
 </head>
 <body>
-    <nav>
-        <a href="/jobs">View All Jobs</a> | 
-        <a href="/add-job">Add New Job</a> |
-        <a href="/help">Help</a> |
-        <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
-    </nav>
+    <header class="dashboard-header">
+        <h1 class="dashboard-title">Career Tracker</h1>
+        <nav class="dashboard-nav" aria-label="Main navigation">
+            <a href="/jobs">Dashboard</a>
+            <span>|</span>
+            <a href="/add-job">Add New Job</a>
+            <span>|</span>
+            <a href="/help">Help</a>
+            <span>|</span>
+            <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
+        </nav>
+    </header>
 
     <hr class="nav-divider">
 
@@ -488,9 +611,25 @@ app.get('/jobs', (req, res) => {
             <a href="/jobs?status=Follow-Up">Follow-Up: ${statusCounts['Follow-Up']}</a>
             <a href="/jobs?status=Offer">Offer: ${statusCounts.Offer}</a>
             <a href="/jobs?status=Rejected">Rejected: ${statusCounts.Rejected}</a>
+            <span>|</span>
+            <span class="results-count">Results: ${rows.length}</span>
         </div>
 
-        <div class="follow-up-hover-group">
+        <div class="sticky-tools">
+            <details class="search-summary">
+                <summary class="search-toggle">Search</summary>
+                <form action="/jobs" method="GET" class="sticky-search-form">
+                    <input
+                        type="text"
+                        name="search"
+                        placeholder="Company or job title"
+                        value="${escapeHtml(search)}"
+                    >
+                    <button type="submit">Search</button>
+                    <a href="/jobs">Clear Filters</a>
+                </form>
+            </details>
+
             <div class="follow-up-summary" tabindex="0">
                 <span class="follow-up-summary-trigger">Past Due</span>
                 <div class="follow-up-tooltip">${pastDueHoverHtml}</div>
@@ -502,35 +641,7 @@ app.get('/jobs', (req, res) => {
         </div>
     </div>
 
-    <h1>Career Tracker</h1>
-
     <hr class="content-divider">
-
-<h2>Search and Filter Applications</h2>
-
-    <form action="/jobs" method="GET" style="margin-bottom: 20px;">
-        <input 
-            type="text" 
-            name="search" 
-            placeholder="Search by company or job title"
-            value="${search}"
-            style="padding: 6px; width: 250px;"
-        >
-
-        <select name="status" style="padding: 6px;">
-            <option value="">All Statuses</option>
-            <option value="Applied" ${statusFilter === 'Applied' ? 'selected' : ''}>Applied</option>
-            <option value="Interview" ${statusFilter === 'Interview' ? 'selected' : ''}>Interview</option>
-            <option value="Follow-Up" ${statusFilter === 'Follow-Up' ? 'selected' : ''}>Follow-Up</option>
-            <option value="Offer" ${statusFilter === 'Offer' ? 'selected' : ''}>Offer</option>
-            <option value="Rejected" ${statusFilter === 'Rejected' ? 'selected' : ''}>Rejected</option>
-        </select>
-
-        <button type="submit" style="padding: 6px;">Search / Filter</button>
-        <a href="/jobs" style="margin-left: 10px;">Clear Filters</a>
-    </form>
-
-    <p><strong>Results Found:</strong> ${rows.length}</p>
         `;
 
         if (rows.length === 0) {
@@ -548,9 +659,27 @@ app.get('/jobs', (req, res) => {
                 let rowStyle = '';
                 let statusIcon = '';
                 const followUpStatus = getFollowUpStatus(job.follow_up_date);
-                const followUpDateDisplay = job.follow_up_date
-                    ? `${escapeHtml(job.follow_up_date)}${followUpStatus.daysUntil < 0 ? ' <span class="past-due-label">⚠ Past due</span>' : ''}`
-                    : 'N/A';
+                const companyName = escapeHtml(job.company_name || 'Unknown Company');
+                const jobTitle = escapeHtml(job.job_title || 'Unknown Role');
+                const statusText = escapeHtml(job.status || 'No Status');
+                const sourceText = job.application_source ? escapeHtml(job.application_source) : '';
+                const appliedDateText = job.application_date ? escapeHtml(job.application_date) : '';
+                const metadataParts = [];
+                const followUpLine = job.follow_up_date
+                    ? `<div><strong>Follow-up:</strong> ${followUpStatus.daysUntil < 0 ? '<span class="past-due-label">⚠ Past due</span> ' : ''}${escapeHtml(job.follow_up_date)}</div>`
+                    : '';
+
+                if (sourceText) {
+                    metadataParts.push(sourceText);
+                }
+
+                if (appliedDateText) {
+                    metadataParts.push(`Applied ${appliedDateText}`);
+                }
+
+                const metadataLine = metadataParts.length > 0
+                    ? `<div>${metadataParts.join(' • ')}</div>`
+                    : '';
 
                 if (job.status === 'Follow-Up') {
                     rowStyle = 'background-color: #fff3cd; font-weight: bold;';
@@ -573,56 +702,20 @@ app.get('/jobs', (req, res) => {
             <details class="job-card" style="${rowStyle}">
                 <summary>
                     <span class="job-card-summary">
-                        <strong>${escapeHtml(job.company_name || 'N/A')}</strong>
-                        <span>${escapeHtml(job.job_title || 'N/A')}</span>
-                        <span>${statusIcon}${escapeHtml(job.status || 'N/A')}</span>
+                        <strong>${companyName}</strong>
+                        <span>${jobTitle}</span>
+                        <span class="status-badge">${statusIcon}${statusText}</span>
+                        ${followUpStatus.daysUntil < 0 ? '<span class="past-due-badge">⚠ Past due</span>' : ''}
                     </span>
                 </summary>
 
                 <div class="job-card-body">
-                    <div><strong>Source:</strong> ${escapeHtml(job.application_source || 'N/A')}</div>
-                    <div><strong>Application Date:</strong> ${escapeHtml(job.application_date || 'N/A')}</div>
-                    <div><strong>Follow-Up Date:</strong> ${followUpDateDisplay}</div>
-                    <div><strong>Job Posting:</strong> ${job.job_url ? `<a href="${escapeHtml(job.job_url)}" target="_blank">View Posting</a>` : 'N/A'}</div>
-                    <div><strong>Resume Version:</strong> ${escapeHtml(job.resume_version || 'N/A')}</div>
-                    <div><strong>Cover Letter Version:</strong> ${escapeHtml(job.cover_letter_version || 'N/A')}</div>
-                    <div><strong>Application Stage Notes:</strong> ${job.notes ? `${escapeHtml(job.notes).slice(0, 120)}${job.notes.length > 120 ? '...' : ''}` : 'N/A'}</div>
-
-                    <div class="job-card-controls">
-                    <form action="/update-status/${job.id}" method="POST">
-                        <label>Status:</label><br>
-                        <select name="status" onchange="this.form.submit()">
-                            <option value="Applied" ${job.status === 'Applied' ? 'selected' : ''}>Applied</option>
-                            <option value="Interview" ${job.status === 'Interview' ? 'selected' : ''}>Interview</option>
-                            <option value="Follow-Up" ${job.status === 'Follow-Up' ? 'selected' : ''}>Follow-Up</option>
-                            <option value="Offer" ${job.status === 'Offer' ? 'selected' : ''}>Offer</option>
-                            <option value="Rejected" ${job.status === 'Rejected' ? 'selected' : ''}>Rejected</option>
-                        </select>
-                        <span>${statusIcon}${job.status}</span>
-                    </form>
-
-                    <form action="/update-followup/${job.id}" method="POST" style="display:flex; gap:5px; align-items:center; flex-wrap:wrap;">
-                        <label>Follow-Up Date:</label>
-                        <input 
-                            type="date" 
-                            name="followUpDate" 
-                            value="${job.follow_up_date || ''}"
-                        >
-                        <button type="submit" style="font-size:10px; cursor:pointer;">
-                            Update
-                        </button>
-                    </form>
-                    <small>${followUpStatus.label}</small>
-                    </div>
+                    ${metadataLine}
+                    ${followUpLine}
 
                     <div class="job-card-actions">
                     <a href="/jobs/${job.id}" style="text-decoration:none; font-weight:bold;">
                        View Details
-                    </a>
-                    <a href="/delete-job/${job.id}" 
-                       onclick="return confirm('Are you sure you want to delete this application?')" 
-                       style="color:red; text-decoration:none; font-weight:bold;">
-                       [X] Delete
                     </a>
                     </div>
                 </div>
@@ -636,11 +729,18 @@ app.get('/jobs', (req, res) => {
         }
 
         html += `
-    <br>
-    <hr>
+    <script>
+        const searchDetails = document.querySelector('.search-summary');
+        const searchInput = document.querySelector('.sticky-search-form input[name="search"]');
 
-    <p><strong>Total Applications Displayed:</strong> ${rows.length}</p>
-
+        if (searchDetails && searchInput) {
+            searchDetails.addEventListener('toggle', () => {
+                if (searchDetails.open) {
+                    setTimeout(() => searchInput.focus(), 0);
+                }
+            });
+        }
+    </script>
 </body>
 </html>
         `;
@@ -664,6 +764,38 @@ app.get('/jobs/star-help', (req, res) => {
             line-height: 1.5;
         }
 
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        .page-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .page-nav a {
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .header-divider {
+            border: 0;
+            border-top: 1px solid #999;
+            margin-bottom: 16px;
+        }
+
         .star-callout {
             border: 1px solid #999;
             padding: 18px;
@@ -671,7 +803,7 @@ app.get('/jobs/star-help', (req, res) => {
             background-color: #f9f9f9;
         }
 
-        .star-callout h1 {
+        .star-callout h2 {
             margin-top: 0;
         }
 
@@ -690,19 +822,22 @@ app.get('/jobs/star-help', (req, res) => {
     </style>
 </head>
 <body>
-    <nav>
-        <a href="/jobs">View All Jobs</a> |
-        <a href="/add-job">Add New Job</a> |
-        <a href="/help">Help</a> |
-        <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
-    </nav>
+    <header class="page-header">
+        <h1 class="page-title">STAR Interview Cheat Sheet</h1>
+        <nav class="page-nav" aria-label="Main navigation">
+            <a href="/jobs">Dashboard</a>
+            <span>|</span>
+            <a href="/add-job">Add New Job</a>
+            <span>|</span>
+            <a href="/help">Help</a>
+            <span>|</span>
+            <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
+        </nav>
+    </header>
 
-    <hr>
-
-    <p><a href="/jobs">Back to Dashboard</a></p>
+    <hr class="header-divider">
 
     <div class="star-callout">
-        <h1>STAR Interview Cheat Sheet</h1>
         <h2>STAR = Situation &rarr; Task &rarr; Action &rarr; Result</h2>
         <p>This framework structures your behavioral answers to keep them high-impact and prevent rambling.</p>
 
@@ -829,7 +964,7 @@ app.get('/jobs/:id', (req, res) => {
 </head>
 <body>
     <nav>
-        <a href="/jobs">View All Jobs</a> |
+        <a href="/jobs">Dashboard</a> |
         <a href="/add-job">Add New Job</a> |
         <a href="/help">Help</a> |
         <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
@@ -920,44 +1055,182 @@ app.get('/jobs/:id', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <title>${companyName || 'Job'} - Job Details</title>
+    <style>
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 8px 0;
+        }
+
+        .page-title {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        .page-nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+
+        .page-nav a {
+            font-weight: bold;
+            text-decoration: none;
+        }
+
+        .header-divider,
+        .content-divider {
+            border: 0;
+            border-top: 1px solid #999;
+        }
+
+        .back-link {
+            margin: 12px 0;
+        }
+
+        .details-action-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            margin: 12px 0;
+        }
+
+        .details-container {
+            max-width: 1200px;
+        }
+
+        .job-details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 16px 28px;
+            align-items: start;
+            border: 1px solid #999;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .form-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .form-field {
+            margin: 0;
+        }
+
+        label {
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            box-sizing: border-box;
+            width: 100%;
+            max-width: 100%;
+            padding: 6px;
+        }
+
+        textarea {
+            resize: vertical;
+        }
+
+        #notes {
+            min-height: 140px;
+        }
+
+        #extendedNotes {
+            min-height: 240px;
+        }
+
+        .form-actions {
+            margin: 16px 0 24px 0;
+        }
+
+        button[type="submit"] {
+            padding: 8px 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .references-panel {
+            border: 1px solid #999;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+
+        .delete-job-section {
+            border: 1px solid #b00020;
+            padding: 15px;
+            margin-bottom: 20px;
+            background-color: #fff5f5;
+        }
+
+        .delete-job-section input {
+            max-width: 240px;
+        }
+
+        .delete-job-section button {
+            color: #b00020;
+        }
+    </style>
 </head>
 <body>
-    <nav>
-        <a href="/jobs">View All Jobs</a> |
-        <a href="/add-job">Add New Job</a> |
-        <a href="/help">Help</a> |
-        <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
-    </nav>
+    <header class="page-header">
+        <h1 class="page-title">Job Details</h1>
+        <nav class="page-nav" aria-label="Main navigation">
+            <a href="/jobs">Dashboard</a>
+            <span>|</span>
+            <a href="/add-job">Add New Job</a>
+            <span>|</span>
+            <a href="/help">Help</a>
+            <span>|</span>
+            <a href="/jobs/star-help">STAR Interview Cheat Sheet</a>
+        </nav>
+    </header>
 
-    <hr>
+    <hr class="header-divider">
 
-    <p><a href="/jobs">Back to Dashboard</a></p>
+    <main class="details-container">
+    <div class="details-action-row">
+        <a href="/jobs">Back to Dashboard</a>
+        <button type="submit" form="jobDetailsForm">Update Job Details</button>
+    </div>
 
-    <h1>Job Details</h1>
+    <hr class="content-divider">
 
-    <form action="/jobs/${job.id}/update" method="POST">
-        <div style="border:1px solid #999; padding:15px; margin-bottom:20px; background-color:#f9f9f9;">
-            <p>
+    <form id="jobDetailsForm" action="/jobs/${job.id}/update" method="POST">
+        <div class="job-details-grid">
+            <div class="form-column">
+            <p class="form-field">
                 <label for="companyName">Company Name:</label><br>
                 <input type="text" id="companyName" name="companyName" value="${companyName}" required>
             </p>
 
-            <p>
+            <p class="form-field">
                 <label for="jobTitle">Job Title:</label><br>
                 <input type="text" id="jobTitle" name="jobTitle" value="${jobTitle}" required>
             </p>
 
-            <p>
+            <p class="form-field">
                 <label for="applicationSource">Application Source:</label><br>
                 <input type="text" id="applicationSource" name="applicationSource" value="${applicationSource}">
             </p>
 
-            <p>
+            <p class="form-field">
                 <label for="applicationDate">Application Date:</label><br>
                 <input type="date" id="applicationDate" name="applicationDate" value="${applicationDate}">
             </p>
 
-            <p>
+            <p class="form-field">
                 <label for="status">Current Status:</label><br>
                 <select id="status" name="status">
                     <option value="Applied" ${status === 'Applied' ? 'selected' : ''}>Applied</option>
@@ -968,43 +1241,46 @@ app.get('/jobs/:id', (req, res) => {
                 </select>
             </p>
 
-            <p>
+            <p class="form-field">
                 <label for="followUpDate">Follow-up Date:</label><br>
                 <input type="date" id="followUpDate" name="followUpDate" value="${followUpDate}">
             </p>
 
-            <p>
+            <p class="form-field">
                 <label for="jobUrl">Job Posting URL:</label><br>
                 <input type="url" id="jobUrl" name="jobUrl" value="${jobUrl}">
                 ${jobUrl ? `<br><a href="${jobUrl}" target="_blank">View Posting</a>` : ''}
             </p>
+            </div>
 
-            <p>
+            <div class="form-column">
+            <p class="form-field">
                 <label for="resumeVersion">Resume Version Used:</label><br>
                 <input type="text" id="resumeVersion" name="resumeVersion" value="${resumeVersion}">
             </p>
 
-            <p>
+            <p class="form-field">
                 <label for="coverLetterVersion">Cover Letter Version Used:</label><br>
                 <input type="text" id="coverLetterVersion" name="coverLetterVersion" value="${coverLetterVersion}">
             </p>
-        </div>
+        
 
         <h2 title="Short notes from the application stage, such as recruiter names, quick reminders, follow-up context, or application-specific details.">Application Stage Notes ⓘ</h2>
-        <p>
+            <div class="form-field">
             <textarea id="notes" name="notes" rows="6" cols="70">${notes}</textarea>
-        </p>
+            </div>
 
         <h2 title="Long-form notes for interview prep, STAR examples, company research, salary notes, detailed follow-up planning, and deeper job-specific information.">Extended Notes ⓘ</h2>
-        <p>
+            <div class="form-field">
             <textarea id="extendedNotes" name="extendedNotes" rows="12" cols="90">${extendedNotes}</textarea>
-        </p>
+            </div>
+            </div>
+        </div>
 
-        <button type="submit">Update Job Details</button>
     </form>
 
     <h2>References Used</h2>
-    <div style="border:1px solid #999; padding:15px; margin-bottom:20px; background-color:#f9f9f9;">
+    <div class="references-panel">
         ${referencesHtml}
 
         <details>
@@ -1035,7 +1311,51 @@ app.get('/jobs/:id', (req, res) => {
         </details>
     </div>
 
-    <p><a href="/jobs">Back to Dashboard</a></p>
+    <section class="delete-job-section">
+        <h2>Delete Job</h2>
+        <p>Deleting this job removes the application and any references linked to it.</p>
+        <form action="/jobs/${job.id}/delete" method="POST">
+            <p>
+                <label for="confirmDelete">Type DELETE to confirm</label><br>
+                <input type="text" id="confirmDelete" name="confirmDelete" autocomplete="off">
+            </p>
+            <button type="submit">Delete Job</button>
+        </form>
+    </section>
+
+    <div class="details-action-row">
+        <a href="/jobs">Back to Dashboard</a>
+        <button type="submit" form="jobDetailsForm">Update Job Details</button>
+    </div>
+    </main>
+
+    <script>
+        const jobDetailsForm = document.getElementById('jobDetailsForm');
+        let hasUnsavedChanges = false;
+
+        if (jobDetailsForm) {
+            jobDetailsForm.addEventListener('input', () => {
+                hasUnsavedChanges = true;
+            });
+
+            jobDetailsForm.addEventListener('change', () => {
+                hasUnsavedChanges = true;
+            });
+
+            jobDetailsForm.addEventListener('submit', () => {
+                hasUnsavedChanges = false;
+            });
+        }
+
+        window.addEventListener('beforeunload', (event) => {
+            if (!hasUnsavedChanges) {
+                return;
+            }
+
+            event.preventDefault();
+            event.returnValue = '';
+        });
+    </script>
 </body>
 </html>
         `);
@@ -1223,20 +1543,30 @@ app.post('/update-followup/:id', (req, res) => {
     });
 });
 
-// Delete job
-app.get('/delete-job/:id', (req, res) => {
+// Delete job with typed confirmation
+app.post('/jobs/:id/delete', (req, res) => {
     const jobId = req.params.id;
+    const { confirmDelete } = req.body;
 
-    const sql = 'DELETE FROM jobs WHERE id = ?';
+    if (confirmDelete !== 'DELETE') {
+        return res.redirect(`/jobs/${jobId}`);
+    }
 
-    db.run(sql, jobId, (err) => {
+    db.run('DELETE FROM job_references WHERE job_id = ?', [jobId], (err) => {
         if (err) {
             console.error(err.message);
-            res.status(500).send('Error deleting job');
-        } else {
+            return res.status(500).send('Error deleting job references');
+        }
+
+        db.run('DELETE FROM jobs WHERE id = ?', [jobId], (err) => {
+            if (err) {
+                console.error(err.message);
+                return res.status(500).send('Error deleting job');
+            }
+
             console.log(`Job ID ${jobId} deleted successfully.`);
             res.redirect('/jobs');
-        }
+        });
     });
 });
 
